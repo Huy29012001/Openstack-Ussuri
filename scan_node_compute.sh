@@ -1,0 +1,5 @@
+#!/bin/bash
+
+su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts"
+
+openstack compute service list
