@@ -23,26 +23,7 @@ systemctl enable --now mariadb
 
 sed -i '/\[mysqld\]/a max_connections=500' /etc/my.cnf.d/mariadb-server.cnf
 
-sudo mysql -e "SET PASSWORD FOR root@localhost = PASSWORD('Nam@12345');FLUSH PRIVILEGES;" 
-
-echo "###################Install and Config RabbitMQ && Memcached###################"
-
-dnf --enablerepo=PowerTools -y install rabbitmq-server memcached
-
-cat << EOF > /etc/sysconfig/memcached
-PORT="11211"
-USER="memcached"
-MAXCONN="1024"
-CACHESIZE="64"
-OPTIONS="-l 0.0.0.0,::"
-EOF
-
-systemctl restart mariadb rabbitmq-server memcached
-systemctl enable mariadb rabbitmq-server memcached
-
-rabbitmqctl add_user openstack password
-rabbitmqctl set_permissions openstack ".*" ".*" ".*"
-
+sudo mysql -e "SET PASSWORD FOR root@localhost = PASSWORD('Nam@12345');FLUSH PRIVILEGES;"
 
 cat << EOF | mysql -uroot -pNam@12345
 DROP DATABASE IF EXISTS keystone;
@@ -88,6 +69,24 @@ grant all privileges on neutron_ml2.* to neutron@'%' identified by 'password';
 flush privileges;
 
 EOF
+
+echo "###################Install and Config RabbitMQ && Memcached###################"
+
+dnf --enablerepo=PowerTools -y install rabbitmq-server memcached
+
+cat << EOF > /etc/sysconfig/memcached
+PORT="11211"
+USER="memcached"
+MAXCONN="1024"
+CACHESIZE="64"
+OPTIONS="-l 0.0.0.0,::"
+EOF
+
+systemctl restart mariadb rabbitmq-server memcached
+systemctl enable mariadb rabbitmq-server memcached
+
+rabbitmqctl add_user openstack password
+rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
 echo "###################Install and Config Keystone###################"
 
