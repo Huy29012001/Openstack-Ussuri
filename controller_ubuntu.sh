@@ -398,3 +398,93 @@ openstack service create --name neutron --description "OpenStack Networking serv
 openstack endpoint create --region RegionOne network public http://192.168.1.40:9696
 openstack endpoint create --region RegionOne network internal http://192.168.1.40:9696
 openstack endpoint create --region RegionOne network admin http://192.168.1.40:9696
+
+apt -y install neutron-server neutron-plugin-ml2 neutron-openvswitch-agent neutron-dhcp-agent neutron-metadata-agent python3-neutronclient
+
+mv /etc/neutron/neutron.conf /etc/neutron/neutron.conf.org
+cat << EOF > /etc/neutron/neutron.conf
+[DEFAULT]
+core_plugin = ml2
+service_plugins = router
+auth_strategy = keystone
+state_path = /var/lib/neutron
+dhcp_agent_notification = True
+allow_overlapping_ips = True
+notify_nova_on_port_status_changes = True
+notify_nova_on_port_data_changes = True
+transport_url = rabbit://openstack:password@192.168.1.60
+
+[agent]
+root_helper = sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf
+
+[keystone_authtoken]
+www_authenticate_uri = http://192.168.1.60:5000
+auth_url = http://192.168.1.60:5000
+memcached_servers = 192.168.1.60:11211
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+project_name = service
+username = neutron
+password = servicepassword
+
+[database]
+connection = mysql+pymysql://neutron:password@192.168.1.60/neutron_ml2
+
+[nova]
+auth_url = http://192.168.1.60:5000
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+region_name = RegionOne
+project_name = service
+username = nova
+password = servicepassword
+
+[oslo_concurrency]
+lock_path = $state_path/tmp
+EOF
+
+chmod 640 /etc/neutron/neutron.conf
+chgrp neutron /etc/neutron/neutron.conf
+
+sed -i '/\[DEFAULT\]/a interface_driver = openvswitch\ndhcp_driver = neutron.agent.linux.dhcp.Dnsmasq\nenable_isolated_metadata = true' /etc/neutron/dhcp_agent.ini
+sed -i '/\[DEFAULT\]/a nova_metadata_host = 192.168.1.40\nmetadata_proxy_shared_secret = metadata_secret' /etc/neutron/metadata_agent.ini
+sed -i '/\[cache\]/a memcache_servers = 192.168.1.40:11211' /etc/neutron/metadata_agent.ini
+
+sed -i '/\[DEFAULT\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
+sed -i '/\[ml2_type_flat\]/a flat_networks = physnet1'  /etc/neutron/plugins/ml2/ml2_conf.ini
+
+sed -i '/\[ovs\]/a bridge_mappings = physnet1:br-ex' /etc/neutron/plugins/ml2/openvswitch_agent.ini
+sed -i '/\[securitygroup\]/a firewall_driver = openvswitch\nenable_security_group = true\nenable_ipset = true' /etc/neutron/plugins/ml2/openvswitch_agent.ini
+
+ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
+
+su -s /bin/bash neutron -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugin.ini upgrade head"
+
+cat << EOF > /etc/systemd/network/ens34.network
+[Match]
+Name=ens34
+
+[Network]
+LinkLocalAddressing=no
+IPv6AcceptRA=no
+EOF
+
+systemctl restart systemd-networkd
+
+ovs-vsctl add-br br-ex
+ovs-vsctl add-port br-ex ens34
+
+systemctl restart neutron-*
+
+openstack network agent list
+
+projectID=$(openstack project list | grep service | awk '{print $2}')
+openstack network create --project $projectID --share --external --provider-network-type flat --provider-physical-network provider public
+openstack subnet create subnet_public --network public --project $projectID --subnet-range 192.168.1.0/24 --allocation-pool start=192.168.1.200,end=192.168.1.254 --gateway 192.168.1.1 --dns-nameserver 8.8.8.8
+
+openstack network list
+openstack subnet list
+
+echo "################### DONE ###################"
