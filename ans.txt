@@ -1,1 +1,2 @@
 RAM 260MB
+161MB Centos

@@ -92,7 +92,7 @@ echo "###################Install and Config Keystone###################"
 
 dnf --enablerepo=centos-openstack-ussuri,epel,PowerTools -y install openstack-keystone python3-openstackclient httpd mod_ssl python3-mod_wsgi python3-oauth2client
 
-sed -i '/\[cache\]/a memcache_servers = 192.168.1.7:11211' /etc/keystone/keystone.conf
+sed -i '/\[cache\]/a memcache_servers = 192.168.1.40:11211' /etc/keystone/keystone.conf
 sed -i '/\[database\]/a connection = mysql+pymysql://keystone:password@localhost/keystone' /etc/keystone/keystone.conf
 sed -i -e "s/#provider = fernet/provider = fernet/g" /etc/keystone/keystone.conf
 
@@ -100,7 +100,7 @@ su -s /bin/bash keystone -c "keystone-manage db_sync"
 
 keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
 keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
-keystone-manage bootstrap --bootstrap-password adminpassword --bootstrap-admin-url http://192.168.1.7:5000/v3/ --bootstrap-internal-url http://192.168.1.7:5000/v3/ --bootstrap-public-url http://192.168.1.7:5000/v3/ --bootstrap-region-id RegionOne
+keystone-manage bootstrap --bootstrap-password adminpassword --bootstrap-admin-url http://192.168.1.40:5000/v3/ --bootstrap-internal-url http://192.168.1.40:5000/v3/ --bootstrap-public-url http://192.168.1.40:5000/v3/ --bootstrap-region-id RegionOne
 
 ln -s /usr/share/keystone/wsgi-keystone.conf /etc/httpd/conf.d/
 systemctl enable --now httpd
@@ -129,9 +129,9 @@ echo "###################Install and Config Glance###################"
 openstack user create --domain default --project service --password servicepassword glance
 openstack role add --project service --user glance admin
 openstack service create --name glance --description "OpenStack Image service" image
-openstack endpoint create --region RegionOne image public http://192.168.1.7:9292
-openstack endpoint create --region RegionOne image internal http://192.168.1.7:9292
-openstack endpoint create --region RegionOne image admin http://192.168.1.7:9292
+openstack endpoint create --region RegionOne image public http://192.168.1.40:9292
+openstack endpoint create --region RegionOne image internal http://192.168.1.40:9292
+openstack endpoint create --region RegionOne image admin http://192.168.1.40:9292
 
 dnf --enablerepo=centos-openstack-ussuri,PowerTools,epel -y install openstack-glance
 mv /etc/glance/glance-api.conf /etc/glance/glance-api.conf.org
@@ -146,12 +146,12 @@ default_store = file
 filesystem_store_datadir = /var/lib/glance/images/
 
 [database]
-connection = mysql+pymysql://glance:password@192.168.1.7/glance
+connection = mysql+pymysql://glance:password@192.168.1.40/glance
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.7:5000
-auth_url = http://192.168.1.7:5000
-memcached_servers = 192.168.1.7:11211
+www_authenticate_uri = http://192.168.1.40:5000
+auth_url = http://192.168.1.40:5000
+memcached_servers = 192.168.1.40:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -179,24 +179,24 @@ openstack role add --project service --user placement admin
 openstack service create --name nova --description "OpenStack Compute service" compute
 openstack service create --name placement --description "OpenStack Compute Placement service" placement
 
-openstack endpoint create --region RegionOne compute public http://192.168.1.7:8774/v2.1/%\(tenant_id\)s
-openstack endpoint create --region RegionOne compute internal http://192.168.1.7:8774/v2.1/%\(tenant_id\)s
-openstack endpoint create --region RegionOne compute admin http://192.168.1.7:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute public http://192.168.1.40:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute internal http://192.168.1.40:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute admin http://192.168.1.40:8774/v2.1/%\(tenant_id\)s
 
-openstack endpoint create --region RegionOne placement public http://192.168.1.7:8778
-openstack endpoint create --region RegionOne placement internal http://192.168.1.7:8778
-openstack endpoint create --region RegionOne placement admin http://192.168.1.7:8778
+openstack endpoint create --region RegionOne placement public http://192.168.1.40:8778
+openstack endpoint create --region RegionOne placement internal http://192.168.1.40:8778
+openstack endpoint create --region RegionOne placement admin http://192.168.1.40:8778
 
 dnf --enablerepo=centos-openstack-ussuri,PowerTools,epel -y install openstack-nova openstack-placement-api
 
 mv /etc/nova/nova.conf /etc/nova/nova.conf.org
 cat << EOF > /etc/nova/nova.conf
 [DEFAULT]
-my_ip = 192.168.1.7
+my_ip = 192.168.1.40
 state_path = /var/lib/nova
 enabled_apis = osapi_compute,metadata
 log_dir = /var/log/nova
-transport_url = rabbit://openstack:password@192.168.1.7
+transport_url = rabbit://openstack:password@192.168.1.40
 
 use_neutron = True
 linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
@@ -208,13 +208,13 @@ vif_plugging_timeout = 300
 auth_strategy = keystone
 
 [glance]
-api_servers = http://192.168.1.7:9292
+api_servers = http://192.168.1.40:9292
 
 [cinder]
 os_region_name = RegionOne
 
 [neutron]
-auth_url = http://192.168.1.7:5000
+auth_url = http://192.168.1.40:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -229,15 +229,15 @@ metadata_proxy_shared_secret = metadata_secret
 lock_path = $state_path/tmp
 
 [api_database]
-connection = mysql+pymysql://nova:password@192.168.1.7/nova_api
+connection = mysql+pymysql://nova:password@192.168.1.40/nova_api
 
 [database]
-connection = mysql+pymysql://nova:password@192.168.1.7/nova
+connection = mysql+pymysql://nova:password@192.168.1.40/nova
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.7:5000
-auth_url = http://192.168.1.7:5000
-memcached_servers = 192.168.1.7:11211
+www_authenticate_uri = http://192.168.1.40:5000
+auth_url = http://192.168.1.40:5000
+memcached_servers = 192.168.1.40:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -246,7 +246,7 @@ username = nova
 password = servicepassword
 
 [placement]
-auth_url = http://192.168.1.7:5000
+auth_url = http://192.168.1.40:5000
 os_region_name = RegionOne
 auth_type = password
 project_domain_name = default
@@ -258,6 +258,8 @@ password = servicepassword
 [wsgi]
 api_paste_config = /etc/nova/api-paste.ini
 EOF
+
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/nova/nova.conf
 
 chmod 640 /etc/nova/nova.conf
 chgrp nova /etc/nova/nova.conf
@@ -271,9 +273,9 @@ debug = false
 auth_strategy = keystone
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.7:5000
-auth_url = http://192.168.1.7:5000
-memcached_servers = 192.168.1.7:11211
+www_authenticate_uri = http://192.168.1.40:5000
+auth_url = http://192.168.1.40:5000
+memcached_servers = 192.168.1.40:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -282,7 +284,7 @@ username = placement
 password = servicepassword
 
 [placement_database]
-connection = mysql+pymysql://placement:password@192.168.1.7/placement
+connection = mysql+pymysql://placement:password@192.168.1.40/placement
 EOF
 
 chmod 640 /etc/placement/placement.conf
@@ -336,9 +338,9 @@ echo "###################Install and Config Neutron on Controller###############
 openstack user create --domain default --project service --password servicepassword neutron
 openstack role add --project service --user neutron admin
 openstack service create --name neutron --description "OpenStack Networking service" network
-openstack endpoint create --region RegionOne network public http://192.168.1.7:9696
-openstack endpoint create --region RegionOne network internal http://192.168.1.7:9696
-openstack endpoint create --region RegionOne network admin http://192.168.1.7:9696
+openstack endpoint create --region RegionOne network public http://192.168.1.40:9696
+openstack endpoint create --region RegionOne network internal http://192.168.1.40:9696
+openstack endpoint create --region RegionOne network admin http://192.168.1.40:9696
 
 dnf --enablerepo=centos-openstack-ussuri,PowerTools,epel -y install openstack-neutron openstack-neutron-ml2 openstack-neutron-openvswitch
 
@@ -353,12 +355,12 @@ dhcp_agent_notification = True
 allow_overlapping_ips = True
 notify_nova_on_port_status_changes = True
 notify_nova_on_port_data_changes = True
-transport_url = rabbit://openstack:password@192.168.1.7
+transport_url = rabbit://openstack:password@192.168.1.40
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.7:5000
-auth_url = http://192.168.1.7:5000
-memcached_servers = 192.168.1.7:11211
+www_authenticate_uri = http://192.168.1.40:5000
+auth_url = http://192.168.1.40:5000
+memcached_servers = 192.168.1.40:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -367,10 +369,10 @@ username = neutron
 password = servicepassword
 
 [database]
-connection = mysql+pymysql://neutron:password@192.168.1.7/neutron_ml2
+connection = mysql+pymysql://neutron:password@192.168.1.40/neutron_ml2
 
 [nova]
-auth_url = http://192.168.1.7:5000
+auth_url = http://192.168.1.40:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -383,12 +385,14 @@ password = servicepassword
 lock_path = $state_path/tmp
 EOF
 
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/neutron/neutron.conf
+
 chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
 
 sed -i '/\[DEFAULT\]/a interface_driver = openvswitch\ndhcp_driver = neutron.agent.linux.dhcp.Dnsmasq\nenable_isolated_metadata = true' /etc/neutron/dhcp_agent.ini
-sed -i '/\[DEFAULT\]/a nova_metadata_host = 192.168.1.7\nmetadata_proxy_shared_secret = metadata_secret' /etc/neutron/metadata_agent.ini
-sed -i '/\[cache\]/a memcache_servers = 192.168.1.7:11211' /etc/neutron/metadata_agent.ini
+sed -i '/\[DEFAULT\]/a nova_metadata_host = 192.168.1.40\nmetadata_proxy_shared_secret = metadata_secret' /etc/neutron/metadata_agent.ini
+sed -i '/\[cache\]/a memcache_servers = 192.168.1.40:11211' /etc/neutron/metadata_agent.ini
 
 cat << EOF >> /etc/neutron/plugins/ml2/ml2_conf.ini
 [ml2]
@@ -438,9 +442,9 @@ openstack user create --domain default --project service --password servicepassw
 openstack role add --project service --user cinder admin
 openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
 
-openstack endpoint create --region RegionOne volumev3 public http://192.168.1.7:8776/v3/%\(tenant_id\)s
-openstack endpoint create --region RegionOne volumev3 internal http://192.168.1.7:8776/v3/%\(tenant_id\)s
-openstack endpoint create --region RegionOne volumev3 admin http://192.168.1.7:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 public http://192.168.1.40:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 internal http://192.168.1.40:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 admin http://192.168.1.40:8776/v3/%\(tenant_id\)s
 
 dnf --enablerepo=centos-openstack-ussuri,PowerTools,epel -y install openstack-cinder targetcli
 
@@ -451,24 +455,24 @@ userID=$(openstack user list | grep cinder | awk '{print $2}')
 
 cat << EOF > /etc/cinder/cinder.conf
 [DEFAULT]
-my_ip = 192.168.1.7
+my_ip = 192.168.1.40
 log_dir = /var/log/cinder
 state_path = /var/lib/cinder
 auth_strategy = keystone
-transport_url = rabbit://openstack:password@192.168.1.7
-glance_api_servers = http://192.168.1.7:9292
+transport_url = rabbit://openstack:password@192.168.1.40
+glance_api_servers = http://192.168.1.40:9292
 enable_v3_api = True
 enabled_backends = lvm
 cinder_internal_tenant_project_id = $projectID
 cinder_internal_tenant_user_id = $userID
 
 [database]
-connection = mysql+pymysql://cinder:password@192.168.1.7/cinder
+connection = mysql+pymysql://cinder:password@192.168.1.40/cinder
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.7:5000
-auth_url = http://192.168.1.7:5000
-memcached_servers = 192.168.1.7:11211
+www_authenticate_uri = http://192.168.1.40:5000
+auth_url = http://192.168.1.40:5000
+memcached_servers = 192.168.1.40:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -485,24 +489,28 @@ image_volume_cache_max_size_gb = 0
 image_volume_cache_max_count = 0
 target_helper = lioadm
 target_protocol = iscsi
-target_ip_address = 192.168.1.7
+target_ip_address = 192.168.1.40
 volume_group = vg_volume01
 volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
 volumes_dir = $state_path/volumes
 EOF
 
+sed -i -e 's\volumes_dir = /volumes\volumes_dir = $state_path/volumes\g' /etc/cinder/cinder.conf
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/cinder/cinder.conf
+
 chmod 640 /etc/cinder/cinder.conf
 chgrp cinder /etc/cinder/cinder.conf
 su -s /bin/bash cinder -c "cinder-manage db sync"
-systemctl enable --now openstack-cinder-api openstack-cinder-scheduler openstack-cinder-volume
+systemctl enable --now cinder-scheduler.service cinder-volume.service
 
 source ~/keystonerc
+systemctl restart httpd
 openstack volume service list
 
 pvcreate /dev/sdb
 vgcreate vg_volume01 /dev/sdb
 
-systemctl restart openstack-cinder-*
+systemctl restart cinder-scheduler.service cinder-volume.service
 
 
 echo "###################Install and Config Horizon###################"
@@ -549,12 +557,12 @@ ALLOWED_HOSTS = ['*']
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '192.168.1.7:11211',
+        'LOCATION': '192.168.1.40:11211',
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-OPENSTACK_HOST = "192.168.1.7"
-OPENSTACK_KEYSTONE_URL = "http://192.168.1.7:5000/v3"
+OPENSTACK_HOST = "192.168.1.40"
+OPENSTACK_KEYSTONE_URL = "http://192.168.1.40:5000/v3"
 WEBROOT = '/dashboard/'
 LOGIN_URL = '/dashboard/auth/login/'
 LOGOUT_URL = '/dashboard/auth/logout/'
