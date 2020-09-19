@@ -177,6 +177,10 @@ enabled_apis = osapi_compute,metadata
 log_dir = /var/log/nova
 transport_url = rabbit://openstack:password@192.168.1.40
 
+use_neutron = True
+linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
+firewall_driver = nova.virt.firewall.NoopFirewallDriver
+
 [api]
 auth_strategy = keystone
 
@@ -215,6 +219,18 @@ password = servicepassword
 
 [cinder]
 os_region_name = RegionOne
+
+[neutron]
+auth_url = http://192.168.1.60:5000
+auth_type = password
+project_domain_name = default
+user_domain_name = default
+region_name = RegionOne
+project_name = service
+username = neutron
+password = servicepassword
+service_metadata_proxy = True
+metadata_proxy_shared_secret = metadata_secret
 
 [wsgi]
 api_paste_config = /etc/nova/api-paste.ini
