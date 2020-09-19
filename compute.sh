@@ -120,7 +120,7 @@ password = servicepassword
 lock_path = $state_path/lock
 EOF
 
-sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/neutron/neutron.conf
+sed -i -e 's\lock_path = /lock\lock_path = $state_path/lock\g' /etc/neutron/neutron.conf
 
 chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
