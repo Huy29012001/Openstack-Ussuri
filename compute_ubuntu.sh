@@ -118,9 +118,9 @@ chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
 
 sed -i '/\[DEFAULT\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
-sed -i '/\[ml2_type_flat\]/a flat_networks = physnet1'  /etc/neutron/plugins/ml2/ml2_conf.ini
+sed -i '/\[ml2_type_flat\]/a flat_networks = provider'  /etc/neutron/plugins/ml2/ml2_conf.ini
 
-sed -i '/\[ovs\]/a bridge_mappings = physnet1:br-ex' /etc/neutron/plugins/ml2/openvswitch_agent.ini
+sed -i '/\[ovs\]/a bridge_mappings = provider:br-ex' /etc/neutron/plugins/ml2/openvswitch_agent.ini
 sed -i '/\[securitygroup\]/a firewall_driver = openvswitch\nenable_security_group = true\nenable_ipset = true' /etc/neutron/plugins/ml2/openvswitch_agent.ini
 
 ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
