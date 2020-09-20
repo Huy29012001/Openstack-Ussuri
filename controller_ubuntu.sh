@@ -475,7 +475,7 @@ sed -i '/\[DEFAULT\]/a interface_driver = openvswitch\ndhcp_driver = neutron.age
 sed -i '/\[DEFAULT\]/a nova_metadata_host = 192.168.1.50\nmetadata_proxy_shared_secret = metadata_secret' /etc/neutron/metadata_agent.ini
 sed -i '/\[cache\]/a memcache_servers = 192.168.1.50:11211' /etc/neutron/metadata_agent.ini
 
-sed -i '/\[DEFAULT\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
+sed -i '/\[ml2\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
 sed -i '/\[ml2_type_flat\]/a flat_networks = provider'  /etc/neutron/plugins/ml2/ml2_conf.ini
 
 sed -i '/\[ovs\]/a bridge_mappings = provider:br-ex' /etc/neutron/plugins/ml2/openvswitch_agent.ini
