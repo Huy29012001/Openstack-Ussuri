@@ -17,11 +17,11 @@ dnf --enablerepo=centos-openstack-ussuri,PowerTools,epel -y install openstack-no
 mv /etc/nova/nova.conf /etc/nova/nova.conf.org
 cat << EOF > /etc/nova/nova.conf
 [DEFAULT]
-my_ip = 192.168.1.41
+my_ip = 192.168.1.51
 state_path = /var/lib/nova
 enabled_apis = osapi_compute,metadata
 log_dir = /var/log/nova
-transport_url = rabbit://openstack:password@192.168.1.40
+transport_url = rabbit://openstack:password@192.168.1.50
 
 use_neutron = True
 linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
@@ -35,19 +35,19 @@ auth_strategy = keystone
 [vnc]
 enabled = True
 server_listen = 0.0.0.0
-server_proxyclient_address = 192.168.1.41
-novncproxy_base_url = http://192.168.1.40:6080/vnc_auto.html 
+server_proxyclient_address = 192.168.1.51
+novncproxy_base_url = http://192.168.1.50:6080/vnc_auto.html 
 
 [glance]
-api_servers = http://192.168.1.40:9292
+api_servers = http://192.168.1.50:9292
 
 [oslo_concurrency]
 lock_path = $state_path/tmp
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.40:5000
-auth_url = http://192.168.1.40:5000
-memcached_servers = 192.168.1.40:11211
+www_authenticate_uri = http://192.168.1.50:5000
+auth_url = http://192.168.1.50:5000
+memcached_servers = 192.168.1.50:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -59,7 +59,7 @@ password = servicepassword
 os_region_name = RegionOne
 
 [placement]
-auth_url = http://192.168.1.40:5000
+auth_url = http://192.168.1.50:5000
 os_region_name = RegionOne
 auth_type = password
 project_domain_name = default
@@ -69,7 +69,7 @@ username = placement
 password = servicepassword
 
 [neutron]
-auth_url = http://192.168.1.40:5000
+auth_url = http://192.168.1.50:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
@@ -103,12 +103,12 @@ service_plugins = router
 auth_strategy = keystone
 state_path = /var/lib/neutron
 allow_overlapping_ips = True
-transport_url = rabbit://openstack:password@192.168.1.40
+transport_url = rabbit://openstack:password@192.168.1.50
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.40:5000
-auth_url = http://192.168.1.40:5000
-memcached_servers = 192.168.1.40:11211
+www_authenticate_uri = http://192.168.1.50:5000
+auth_url = http://192.168.1.50:5000
+memcached_servers = 192.168.1.50:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
