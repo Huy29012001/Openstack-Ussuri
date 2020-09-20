@@ -236,6 +236,8 @@ metadata_proxy_shared_secret = metadata_secret
 api_paste_config = /etc/nova/api-paste.ini
 EOF
 
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/nova/nova.conf
+
 chmod 640 /etc/nova/nova.conf
 chgrp nova /etc/nova/nova.conf
 mv /etc/placement/placement.conf /etc/placement/placement.conf.org
@@ -336,6 +338,9 @@ volumes_dir = $state_path/volumes
 [oslo_concurrency]
 lock_path = $state_path/tmp
 EOF
+
+sed -i -e 's\volumes_dir = /volumes\volumes_dir = $state_path/volumes\g' /etc/cinder/cinder.conf
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/cinder/cinder.conf
 
 chmod 640 /etc/cinder/cinder.conf
 chgrp cinder /etc/cinder/cinder.conf
@@ -460,6 +465,8 @@ password = servicepassword
 [oslo_concurrency]
 lock_path = $state_path/tmp
 EOF
+
+sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/neutron/neutron.conf
 
 chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
