@@ -1,4 +1,6 @@
 #!/bin/bash -ex
+
+source ans.inf
 timedatectl set-timezone Asia/Ho_Chi_Minh
 
 echo "###################Install and Config MariaDB###################"
@@ -8,9 +10,9 @@ systemctl restart mariadb
 
 sed -i -e "s/127.0.0.1/0.0.0.0/g" /etc/mysql/mariadb.conf.d/50-server.cnf
 sed -i -e "s/#max_connections        = 100/max_connections        = 500/g" /etc/mysql/mariadb.conf.d/50-server.cnf
-sudo mysql -e "SET PASSWORD FOR root@localhost = PASSWORD('Nam@12345');FLUSH PRIVILEGES;" 
+sudo mysql -e "SET PASSWORD FOR root@localhost = PASSWORD('$PASS_SQL_ROOT');FLUSH PRIVILEGES;" 
 
-cat << EOF | mysql -uroot -pNam@12345
+cat << EOF | mysql -uroot -p$PASS_SQL_ROOT
 DROP DATABASE IF EXISTS keystone;
 DROP DATABASE IF EXISTS glance;
 DROP DATABASE IF EXISTS nova;
@@ -21,36 +23,36 @@ DROP DATABASE IF EXISTS cinder;
 DROP DATABASE IF EXISTS neutron_ml2;
 
 create database keystone;
-grant all privileges on keystone.* to keystone@'localhost' identified by 'password';
-grant all privileges on keystone.* to keystone@'%' identified by 'password';
+grant all privileges on keystone.* to keystone@'localhost' identified by '$PASS_SQL_KEYSTONE';
+grant all privileges on keystone.* to keystone@'%' identified by '$PASS_SQL_KEYSTONE';
 
 create database glance;
-grant all privileges on glance.* to glance@'localhost' identified by 'password';
-grant all privileges on glance.* to glance@'%' identified by 'password';
+grant all privileges on glance.* to glance@'localhost' identified by '$PASS_SQL_GLANCE';
+grant all privileges on glance.* to glance@'%' identified by '$PASS_SQL_GLANCE';
 
 create database nova;
-grant all privileges on nova.* to nova@'localhost' identified by 'password';
-grant all privileges on nova.* to nova@'%' identified by 'password';
+grant all privileges on nova.* to nova@'localhost' identified by '$PASS_SQL_NOVA';
+grant all privileges on nova.* to nova@'%' identified by '$PASS_SQL_NOVA';
 
 create database nova_api;
-grant all privileges on nova_api.* to nova@'localhost' identified by 'password';
-grant all privileges on nova_api.* to nova@'%' identified by 'password';
+grant all privileges on nova_api.* to nova@'localhost' identified by '$PASS_SQL_NOVA';
+grant all privileges on nova_api.* to nova@'%' identified by '$PASS_SQL_NOVA';
 
 create database nova_cell0;
-grant all privileges on nova_cell0.* to nova@'localhost' identified by 'password';
-grant all privileges on nova_cell0.* to nova@'%' identified by 'password';
+grant all privileges on nova_cell0.* to nova@'localhost' identified by '$PASS_SQL_NOVA';
+grant all privileges on nova_cell0.* to nova@'%' identified by '$PASS_SQL_NOVA';
 
 create database placement;
-grant all privileges on placement.* to placement@'localhost' identified by 'password';
-grant all privileges on placement.* to placement@'%' identified by 'password';
+grant all privileges on placement.* to placement@'localhost' identified by '$PASS_SQL_PLACEMENT';
+grant all privileges on placement.* to placement@'%' identified by '$PASS_SQL_PLACEMENT';
 
 create database cinder;
-grant all privileges on cinder.* to cinder@'localhost' identified by 'password';
-grant all privileges on cinder.* to cinder@'%' identified by 'password';
+grant all privileges on cinder.* to cinder@'localhost' identified by '$PASS_SQL_CINDER';
+grant all privileges on cinder.* to cinder@'%' identified by '$PASS_SQL_CINDER';
 
 create database neutron_ml2; 
-grant all privileges on neutron_ml2.* to neutron@'localhost' identified by 'password'; 
-grant all privileges on neutron_ml2.* to neutron@'%' identified by 'password'; 
+grant all privileges on neutron_ml2.* to neutron@'localhost' identified by '$PASS_SQL_NEUTRON'; 
+grant all privileges on neutron_ml2.* to neutron@'%' identified by '$PASS_SQL_NEUTRON'; 
 flush privileges;
 
 EOF
@@ -61,7 +63,7 @@ echo "###################Install and Config RabbitMQ && Memcached###############
 
 apt -y install rabbitmq-server memcached python3-pymysql
 
-rabbitmqctl add_user openstack password
+rabbitmqctl add_user openstack $PASS_USER_RABBITMQ
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
 sed -i -e "s/127.0.0.1/0.0.0.0/g" /etc/memcached.conf
@@ -70,15 +72,15 @@ echo "###################Install and Config Keystone###################"
 
 apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
 
-sed -i -e "s/#memcache_servers = localhost:11211/memcache_servers = 192.168.1.50:11211/g" /etc/keystone/keystone.conf
-sed -i -e "s\connection = sqlite:////var/lib/keystone/keystone.db\connection = mysql+pymysql://keystone:password@192.168.1.50/keystone\g" /etc/keystone/keystone.conf
+sed -i -e "s/#memcache_servers = localhost:11211/memcache_servers = $IP_CONTROLLER_MANAGE:11211/g" /etc/keystone/keystone.conf
+sed -i -e "s\connection = sqlite:////var/lib/keystone/keystone.db\connection = mysql+pymysql://keystone:password@$IP_CONTROLLER_MANAGE/keystone\g" /etc/keystone/keystone.conf
 sed -i -e "s/#provider = fernet/provider = fernet/g" /etc/keystone/keystone.conf
 
 su -s /bin/bash keystone -c "keystone-manage db_sync"
 
 keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
 keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
-keystone-manage bootstrap --bootstrap-password adminpassword --bootstrap-admin-url http://192.168.1.50:5000/v3/ --bootstrap-internal-url http://192.168.1.50:5000/v3/ --bootstrap-public-url http://192.168.1.50:5000/v3/ --bootstrap-region-id RegionOne
+keystone-manage bootstrap --bootstrap-password $PASS_USER_ADMIN --bootstrap-admin-url http://$IP_CONTROLLER_MANAGE:5000/v3/ --bootstrap-internal-url http://$IP_CONTROLLER_MANAGE:5000/v3/ --bootstrap-public-url http://$IP_CONTROLLER_MANAGE:5000/v3/ --bootstrap-region-id RegionOne
 
 systemctl restart apache2
 
@@ -88,7 +90,7 @@ export OS_PROJECT_DOMAIN_NAME=default
 export OS_USER_DOMAIN_NAME=default
 export OS_PROJECT_NAME=admin
 export OS_USERNAME=admin
-export OS_PASSWORD=adminpassword
+export OS_PASSWORD=$PASS_USER_ADMIN
 export OS_AUTH_URL=http://localhost:5000/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
@@ -104,12 +106,12 @@ openstack project create --domain default --description "Service Project" servic
 
 echo "###################Install and Config Glance###################"
 
-openstack user create --domain default --project service --password servicepassword glance
+openstack user create --domain default --project service --password $PASS_USER_GLANCE glance
 openstack role add --project service --user glance admin
 openstack service create --name glance --description "OpenStack Image service" image
-openstack endpoint create --region RegionOne image public http://192.168.1.50:9292
-openstack endpoint create --region RegionOne image internal http://192.168.1.50:9292
-openstack endpoint create --region RegionOne image admin http://192.168.1.50:9292
+openstack endpoint create --region RegionOne image public http://$IP_CONTROLLER_MANAGE:9292
+openstack endpoint create --region RegionOne image internal http://$IP_CONTROLLER_MANAGE:9292
+openstack endpoint create --region RegionOne image admin http://$IP_CONTROLLER_MANAGE:9292
 
 apt -y install glance
 
@@ -124,18 +126,18 @@ default_store = file
 filesystem_store_datadir = /var/lib/glance/images/
 
 [database]
-connection = mysql+pymysql://glance:password@192.168.1.50/glance
+connection = mysql+pymysql://glance:$PASS_SQL_GLANCE@$IP_CONTROLLER_MANAGE/glance
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.50:5000
-auth_url = http://192.168.1.50:5000
-memcached_servers = 192.168.1.50:11211
+www_authenticate_uri = http://$IP_CONTROLLER_MANAGE:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
+memcached_servers = $IP_CONTROLLER_MANAGE:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = glance
-password = servicepassword
+password = $PASS_USER_GLANCE
 
 [paste_deploy]
 flavor = keystone
@@ -158,24 +160,24 @@ openstack role add --project service --user placement admin
 openstack service create --name nova --description "OpenStack Compute service" compute
 openstack service create --name placement --description "OpenStack Compute Placement service" placement
 
-openstack endpoint create --region RegionOne compute public http://192.168.1.50:8774/v2.1/%\(tenant_id\)s
-openstack endpoint create --region RegionOne compute internal http://192.168.1.50:8774/v2.1/%\(tenant_id\)s
-openstack endpoint create --region RegionOne compute admin http://192.168.1.50:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute public http://$IP_CONTROLLER_MANAGE:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute internal http://$IP_CONTROLLER_MANAGE:8774/v2.1/%\(tenant_id\)s
+openstack endpoint create --region RegionOne compute admin http://$IP_CONTROLLER_MANAGE:8774/v2.1/%\(tenant_id\)s
 
-openstack endpoint create --region RegionOne placement public http://192.168.1.50:8778
-openstack endpoint create --region RegionOne placement internal http://192.168.1.50:8778
-openstack endpoint create --region RegionOne placement admin http://192.168.1.50:8778
+openstack endpoint create --region RegionOne placement public http://$IP_CONTROLLER_MANAGE:8778
+openstack endpoint create --region RegionOne placement internal http://$IP_CONTROLLER_MANAGE:8778
+openstack endpoint create --region RegionOne placement admin http://$IP_CONTROLLER_MANAGE:8778
 
 apt -y install nova-api nova-conductor nova-scheduler nova-novncproxy placement-api python3-novaclient
 
 mv /etc/nova/nova.conf /etc/nova/nova.conf.org
 cat << EOF > /etc/nova/nova.conf
 [DEFAULT]
-my_ip = 192.168.1.50
+my_ip = $IP_CONTROLLER_MANAGE
 state_path = /var/lib/nova
 enabled_apis = osapi_compute,metadata
 log_dir = /var/log/nova
-transport_url = rabbit://openstack:password@192.168.1.50
+transport_url = rabbit://openstack:$PASS_USER_RABBITMQ@$IP_CONTROLLER_MANAGE
 
 use_neutron = True
 linuxnet_interface_driver = nova.network.linux_net.LinuxOVSInterfaceDriver
@@ -185,50 +187,50 @@ firewall_driver = nova.virt.firewall.NoopFirewallDriver
 auth_strategy = keystone
 
 [glance]
-api_servers = http://192.168.1.50:9292
+api_servers = http://$IP_CONTROLLER_MANAGE:9292
 
 [oslo_concurrency]
 lock_path = $state_path/tmp
 
 [api_database]
-connection = mysql+pymysql://nova:password@192.168.1.50/nova_api
+connection = mysql+pymysql://nova:$PASS_SQL_NOVA@$IP_CONTROLLER_MANAGE/nova_api
 
 [database]
-connection = mysql+pymysql://nova:password@192.168.1.50/nova
+connection = mysql+pymysql://nova:$PASS_SQL_NOVA@$IP_CONTROLLER_MANAGE/nova
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.50:5000
-auth_url = http://192.168.1.50:5000
-memcached_servers = 192.168.1.50:11211
+www_authenticate_uri = http://$IP_CONTROLLER_MANAGE:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
+memcached_servers = $IP_CONTROLLER_MANAGE:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = nova
-password = servicepassword
+password = $PASS_USER_NOVA
 
 [placement]
-auth_url = http://192.168.1.50:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
 os_region_name = RegionOne
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = placement
-password = servicepassword
+password = $PASS_USER_PLACEMENT
 
 [cinder]
 os_region_name = RegionOne
 
 [neutron]
-auth_url = http://192.168.1.50:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 region_name = RegionOne
 project_name = service
 username = neutron
-password = servicepassword
+password = $PASS_USER_NEUTRON
 service_metadata_proxy = True
 metadata_proxy_shared_secret = metadata_secret
 
@@ -250,18 +252,18 @@ debug = false
 auth_strategy = keystone
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.50:5000
-auth_url = http://192.168.1.50:5000
-memcached_servers = 192.168.1.50:11211
+www_authenticate_uri = http://$IP_CONTROLLER_MANAGE:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
+memcached_servers = $IP_CONTROLLER_MANAGE:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = placement
-password = servicepassword
+password = $PASS_USER_PLACEMENT
 
 [placement_database]
-connection = mysql+pymysql://placement:password@192.168.1.50/placement
+connection = mysql+pymysql://placement:$PASS_SQL_PLACEMENT@$IP_CONTROLLER_MANAGE/placement
 EOF
 
 chmod 640 /etc/placement/placement.conf
@@ -280,13 +282,13 @@ openstack compute service list
 
 echo "###################Install and Config Cinder###################"
 
-openstack user create --domain default --project service --password servicepassword cinder
+openstack user create --domain default --project service --password $PASS_USER_CINDER cinder
 openstack role add --project service --user cinder admin
 openstack service create --name cinderv3 --description "OpenStack Block Storage" volumev3
 
-openstack endpoint create --region RegionOne volumev3 public http://192.168.1.50:8776/v3/%\(tenant_id\)s
-openstack endpoint create --region RegionOne volumev3 internal http://192.168.1.50:8776/v3/%\(tenant_id\)s
-openstack endpoint create --region RegionOne volumev3 admin http://192.168.1.50:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 public http://$IP_CONTROLLER_MANAGE:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 internal http://$IP_CONTROLLER_MANAGE:8776/v3/%\(tenant_id\)s
+openstack endpoint create --region RegionOne volumev3 admin http://$IP_CONTROLLER_MANAGE:8776/v3/%\(tenant_id\)s
 
 apt -y install cinder-api cinder-scheduler python3-cinderclient cinder-volume python3-mysqldb python3-rtslib-fb
 apt -y install tgt thin-provisioning-tools
@@ -298,31 +300,31 @@ userID=$(openstack user list | grep cinder | awk '{print $2}')
 
 cat << EOF > /etc/cinder/cinder.conf
 [DEFAULT]
-my_ip = 192.168.1.50
+my_ip = $IP_CONTROLLER_MANAGE
 rootwrap_config = /etc/cinder/rootwrap.conf
 api_paste_confg = /etc/cinder/api-paste.ini
 state_path = /var/lib/cinder
 auth_strategy = keystone
-transport_url = rabbit://openstack:password@192.168.1.50
+transport_url = rabbit://openstack:$PASS_USER_RABBITMQ@$IP_CONTROLLER_MANAGE
 enable_v3_api = True
 cinder_internal_tenant_project_id = $projectID
 cinder_internal_tenant_user_id = $userID
-glance_api_servers = http://192.168.1.50:9292
+glance_api_servers = http://$IP_CONTROLLER_MANAGE:9292
 enabled_backends = lvm
 
 [database]
-connection = mysql+pymysql://cinder:password@192.168.1.50/cinder
+connection = mysql+pymysql://cinder:$PASS_SQL_CINDER@$IP_CONTROLLER_MANAGE/cinder
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.50:5000
-auth_url = http://192.168.1.50:5000
-memcached_servers = 192.168.1.50:11211
+www_authenticate_uri = http://$IP_CONTROLLER_MANAGE:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
+memcached_servers = $IP_CONTROLLER_MANAGE:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = cinder
-password = servicepassword
+password = $PASS_USER_CINDER
 
 [lvm]
 image_volume_cache_enabled = True
@@ -330,7 +332,7 @@ image_volume_cache_max_size_gb = 0
 image_volume_cache_max_count = 0
 target_helper = tgtadm
 target_protocol = iscsi
-target_ip_address = 192.168.1.50
+target_ip_address = $IP_CONTROLLER_MANAGE
 volume_group = vg_volume01
 volume_driver = cinder.volume.drivers.lvm.LVMVolumeDriver
 volumes_dir = $state_path/volumes
@@ -345,8 +347,8 @@ sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/cinder/cinder.
 chmod 640 /etc/cinder/cinder.conf
 chgrp cinder /etc/cinder/cinder.conf
 su -s /bin/bash cinder -c "cinder-manage db sync"
-pvcreate /dev/sdb
-vgcreate vg_volume01 /dev/sdb
+pvcreate /dev/$DEVICE_VOLUME
+vgcreate vg_volume01 /dev/$DEVICE_VOLUME
 systemctl restart cinder-scheduler cinder-volume tgt
 
 source ~/keystonerc
@@ -394,12 +396,12 @@ cat << EOF >> /etc/openstack-dashboard/local_settings.py
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-        'LOCATION': '192.168.1.50:11211',
+        'LOCATION': '$IP_CONTROLLER_MANAGE:11211',
     },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-OPENSTACK_HOST = "192.168.1.50"
-OPENSTACK_KEYSTONE_URL = "http://192.168.1.50:5000/v3"
+OPENSTACK_HOST = "$IP_CONTROLLER_MANAGE"
+OPENSTACK_KEYSTONE_URL = "http://$IP_CONTROLLER_MANAGE:5000/v3"
 #OPENSTACK_KEYSTONE_MULTIDOMAIN_SUPPORT = True
 OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = 'Default'
 OPENSTACK_API_VERSIONS = {
@@ -413,12 +415,12 @@ systemctl restart apache2.service memcached.service
 
 echo "###################Install and Config Neutron on Controller###################"
 
-openstack user create --domain default --project service --password servicepassword neutron
+openstack user create --domain default --project service --password $PASS_USER_NEUTRON neutron
 openstack role add --project service --user neutron admin
 openstack service create --name neutron --description "OpenStack Networking service" network
-openstack endpoint create --region RegionOne network public http://192.168.1.50:9696
-openstack endpoint create --region RegionOne network internal http://192.168.1.50:9696
-openstack endpoint create --region RegionOne network admin http://192.168.1.50:9696
+openstack endpoint create --region RegionOne network public http://$IP_CONTROLLER_MANAGE:9696
+openstack endpoint create --region RegionOne network internal http://$IP_CONTROLLER_MANAGE:9696
+openstack endpoint create --region RegionOne network admin http://$IP_CONTROLLER_MANAGE:9696
 
 apt -y install neutron-server neutron-plugin-ml2 neutron-openvswitch-agent neutron-dhcp-agent neutron-metadata-agent python3-neutronclient
 
@@ -433,34 +435,34 @@ dhcp_agent_notification = True
 allow_overlapping_ips = True
 notify_nova_on_port_status_changes = True
 notify_nova_on_port_data_changes = True
-transport_url = rabbit://openstack:password@192.168.1.50
+transport_url = rabbit://openstack:$PASS_USER_RABBITMQ@$IP_CONTROLLER_MANAGE
 
 [agent]
 root_helper = sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf
 
 [keystone_authtoken]
-www_authenticate_uri = http://192.168.1.50:5000
-auth_url = http://192.168.1.50:5000
-memcached_servers = 192.168.1.50:11211
+www_authenticate_uri = http://$IP_CONTROLLER_MANAGE:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
+memcached_servers = $IP_CONTROLLER_MANAGE:11211
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 project_name = service
 username = neutron
-password = servicepassword
+password = $PASS_USER_NEUTRON
 
 [database]
-connection = mysql+pymysql://neutron:password@192.168.1.50/neutron_ml2
+connection = mysql+pymysql://neutron:$PASS_SQL_NEUTRON@$IP_CONTROLLER_MANAGE/neutron_ml2
 
 [nova]
-auth_url = http://192.168.1.50:5000
+auth_url = http://$IP_CONTROLLER_MANAGE:5000
 auth_type = password
 project_domain_name = default
 user_domain_name = default
 region_name = RegionOne
 project_name = service
 username = nova
-password = servicepassword
+password = $PASS_USER_NOVA
 
 [oslo_concurrency]
 lock_path = $state_path/tmp
@@ -472,8 +474,8 @@ chmod 640 /etc/neutron/neutron.conf
 chgrp neutron /etc/neutron/neutron.conf
 
 sed -i '/\[DEFAULT\]/a interface_driver = openvswitch\ndhcp_driver = neutron.agent.linux.dhcp.Dnsmasq\nenable_isolated_metadata = true' /etc/neutron/dhcp_agent.ini
-sed -i '/\[DEFAULT\]/a nova_metadata_host = 192.168.1.50\nmetadata_proxy_shared_secret = metadata_secret' /etc/neutron/metadata_agent.ini
-sed -i '/\[cache\]/a memcache_servers = 192.168.1.50:11211' /etc/neutron/metadata_agent.ini
+sed -i "/\[DEFAULT\]/a nova_metadata_host = $IP_CONTROLLER_MANAGE\nmetadata_proxy_shared_secret = metadata_secret" /etc/neutron/metadata_agent.ini
+sed -i "/\[cache\]/a memcache_servers = $IP_CONTROLLER_MANAGE:11211" /etc/neutron/metadata_agent.ini
 
 sed -i '/\[ml2\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
 sed -i '/\[ml2_type_flat\]/a flat_networks = provider'  /etc/neutron/plugins/ml2/ml2_conf.ini
@@ -485,9 +487,9 @@ ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
 
 su -s /bin/bash neutron -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugin.ini upgrade head"
 
-cat << EOF > /etc/systemd/network/ens34.network
+cat << EOF > /etc/systemd/network/$INTERFACE_BRIDGE.network
 [Match]
-Name=ens34
+Name=$INTERFACE_BRIDGE
 
 [Network]
 LinkLocalAddressing=no
@@ -497,7 +499,7 @@ EOF
 systemctl restart systemd-networkd
 
 ovs-vsctl add-br br-ex
-ovs-vsctl add-port br-ex ens34
+ovs-vsctl add-port br-ex $INTERFACE_BRIDGE
 
 systemctl restart neutron-*
 
@@ -505,7 +507,7 @@ openstack network agent list
 
 projectID=$(openstack project list | grep service | awk '{print $2}')
 openstack network create --project $projectID --share --external --provider-network-type flat --provider-physical-network provider public
-openstack subnet create subnet_public --network public --project $projectID --subnet-range 192.168.1.0/24 --allocation-pool start=192.168.1.200,end=192.168.1.254 --gateway 192.168.1.1 --dns-nameserver 8.8.8.8
+openstack subnet create subnet_public --network public --project $projectID --subnet-range $OPENSTACK_SUBNET_RANGE --allocation-pool start=$OPENSTACK_SUBNET_START,end=$OPENSTACK_SUBNET_END --gateway $OPENSTACK_GATEWAY --dns-nameserver $DNS_SERVER
 
 openstack network list
 openstack subnet list
