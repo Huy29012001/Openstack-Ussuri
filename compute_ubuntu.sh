@@ -1,6 +1,6 @@
 #!/bin/bash -ex
 
-
+source ans.inf
 timedatectl set-timezone Asia/Ho_Chi_Minh
 
 echo "###################Install and Config Nova on Compute###################"

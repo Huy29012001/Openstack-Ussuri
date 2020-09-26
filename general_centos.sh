@@ -7,8 +7,8 @@ sed -i -e "s/SELINUX=enforcing/SELINUX=disabled/g" /etc/selinux/config
 systemctl disable --now firewalld
 
 cat << EOF >> /etc/hosts
-192.168.1.50 controller
-192.168.1.51 compute
+$IP_CONTROLLER_MANAGE controller
+$IP_COMPUTE_MANAGE compute
 EOF
 
 echo "###################Reboot System###################"
