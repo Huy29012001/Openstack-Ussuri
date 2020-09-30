@@ -82,7 +82,7 @@ sed -i -e 's\lock_path = /tmp\lock_path = $state_path/tmp\g' /etc/nova/nova.conf
 
 chmod 640 /etc/nova/nova.conf
 chgrp nova /etc/nova/nova.conf
-systemctl restart nova-compute
+systemctl restart libvirtd nova-compute
 
 echo "###################Install and Config Neutron on Compute###################"
 
@@ -138,7 +138,7 @@ LinkLocalAddressing=no
 IPv6AcceptRA=no
 EOF
 
-systemctl restart systemd-networkd
+systemctl restart systemd-networkd openvswitch-switch
 
 ovs-vsctl add-br br-ex
 ovs-vsctl add-port br-ex $INTERFACE_BRIDGE
