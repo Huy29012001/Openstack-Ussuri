@@ -63,6 +63,8 @@ echo "###################Install and Config RabbitMQ && Memcached###############
 
 apt -y install rabbitmq-server memcached python3-pymysql
 
+systemctl enable rabbitmq-server && systemctl enable rabbitmq-server
+
 rabbitmqctl add_user openstack $PASS_USER_RABBITMQ
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
 
