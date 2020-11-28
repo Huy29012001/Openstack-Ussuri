@@ -63,7 +63,7 @@ echo "###################Install and Config RabbitMQ && Memcached###############
 
 apt -y install rabbitmq-server memcached python3-pymysql
 
-systemctl enable rabbitmq-server && systemctl enable rabbitmq-server
+systemctl enable rabbitmq-server && systemctl start rabbitmq-server
 
 rabbitmqctl add_user openstack $PASS_USER_RABBITMQ
 rabbitmqctl set_permissions openstack ".*" ".*" ".*"
@@ -153,10 +153,10 @@ systemctl restart glance-api
 
 echo "###################Install and Config Nova on Controller###################"
 
-openstack user create --domain default --project service --password servicepassword nova
+openstack user create --domain default --project service --password $PASS_USER_NOVA nova
 openstack role add --project service --user nova admin
 
-openstack user create --domain default --project service --password servicepassword placement
+openstack user create --domain default --project service --password $PASS_USER_PLACEMENT placement
 openstack role add --project service --user placement admin
 
 openstack service create --name nova --description "OpenStack Compute service" compute
