@@ -75,7 +75,7 @@ echo "###################Install and Config Keystone###################"
 apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
 
 sed -i -e "s/#memcache_servers = localhost:11211/memcache_servers = $IP_CONTROLLER_MANAGE:11211/g" /etc/keystone/keystone.conf
-sed -i -e "s\connection = sqlite:////var/lib/keystone/keystone.db\connection = mysql+pymysql://keystone:password@$IP_CONTROLLER_MANAGE/keystone\g" /etc/keystone/keystone.conf
+sed -i -e "s\connection = sqlite:////var/lib/keystone/keystone.db\connection = mysql+pymysql://keystone:$PASS_SQL_KEYSTONE@$IP_CONTROLLER_MANAGE/keystone\g" /etc/keystone/keystone.conf
 sed -i -e "s/#provider = fernet/provider = fernet/g" /etc/keystone/keystone.conf
 
 su -s /bin/bash keystone -c "keystone-manage db_sync"
