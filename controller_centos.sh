@@ -257,6 +257,11 @@ project_name = service
 username = placement
 password = $PASS_USER_PLACEMENT
 
+[filter_scheduler]
+max_instances_per_host = 50
+available_filters = nova.scheduler.filters.all_filters
+enabled_filters = AvailabilityZoneFilter,ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter
+
 [wsgi]
 api_paste_config = /etc/nova/api-paste.ini
 EOF

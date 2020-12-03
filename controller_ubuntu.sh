@@ -2,6 +2,10 @@
 
 source ans.inf
 timedatectl set-timezone Asia/Ho_Chi_Minh
+apt -y install software-properties-common
+add-apt-repository -y cloud-archive:victoria
+apt update
+apt -y upgrade
 
 echo "###################Install and Config MariaDB###################"
 
@@ -235,6 +239,11 @@ username = neutron
 password = $PASS_USER_NEUTRON
 service_metadata_proxy = True
 metadata_proxy_shared_secret = metadata_secret
+
+[filter_scheduler]
+max_instances_per_host = 50
+available_filters = nova.scheduler.filters.all_filters
+enabled_filters = AvailabilityZoneFilter,ComputeFilter,ComputeCapabilitiesFilter,ImagePropertiesFilter,ServerGroupAntiAffinityFilter,ServerGroupAffinityFilter
 
 [wsgi]
 api_paste_config = /etc/nova/api-paste.ini
@@ -482,26 +491,10 @@ sed -i "/\[cache\]/a memcache_servers = $IP_CONTROLLER_MANAGE:11211" /etc/neutro
 sed -i '/\[ml2\]/a type_drivers = flat\ntenant_network_types =\nmechanism_drivers = openvswitch\nextension_drivers = port_security'  /etc/neutron/plugins/ml2/ml2_conf.ini
 sed -i '/\[ml2_type_flat\]/a flat_networks = provider'  /etc/neutron/plugins/ml2/ml2_conf.ini
 
-sed -i '/\[ovs\]/a bridge_mappings = provider:br-ex' /etc/neutron/plugins/ml2/openvswitch_agent.ini
-sed -i '/\[securitygroup\]/a firewall_driver = openvswitch\nenable_security_group = true\nenable_ipset = true' /etc/neutron/plugins/ml2/openvswitch_agent.ini
-
 ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
 
 su -s /bin/bash neutron -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugin.ini upgrade head"
 
-cat << EOF > /etc/systemd/network/$INTERFACE_BRIDGE.network
-[Match]
-Name=$INTERFACE_BRIDGE
-
-[Network]
-LinkLocalAddressing=no
-IPv6AcceptRA=no
-EOF
-
-systemctl restart systemd-networkd
-
-ovs-vsctl add-br br-ex
-ovs-vsctl add-port br-ex $INTERFACE_BRIDGE
 
 systemctl restart neutron-*
 
