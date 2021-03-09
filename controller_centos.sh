@@ -227,6 +227,13 @@ password = $PASS_USER_NEUTRON
 service_metadata_proxy = True
 metadata_proxy_shared_secret = metadata_secret
 
+[scheduler]
+driver = filter_scheduler
+
+[filter_scheduler]
+available_filters = nova.scheduler.filters.all_filters
+enabled_filters = RetryFilter, AvailabilityZoneFilter, ComputeFilter, ComputeCapabilitiesFilter, ImagePropertiesFilter, ServerGroupAntiAffinityFilter, ServerGroupAffinityFilter
+
 [oslo_concurrency]
 lock_path = $state_path/tmp
 

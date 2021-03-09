@@ -191,6 +191,13 @@ auth_strategy = keystone
 [glance]
 api_servers = http://$IP_CONTROLLER_MANAGE:9292
 
+[scheduler]
+driver = filter_scheduler
+
+[filter_scheduler]
+available_filters = nova.scheduler.filters.all_filters
+enabled_filters = RetryFilter, AvailabilityZoneFilter, ComputeFilter, ComputeCapabilitiesFilter, ImagePropertiesFilter, ServerGroupAntiAffinityFilter, ServerGroupAffinityFilter
+
 [oslo_concurrency]
 lock_path = $state_path/tmp
 
